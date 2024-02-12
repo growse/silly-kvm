@@ -1,0 +1,8 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>growse/renovate-template",
+    "github>growse/renovate-template:automerge-minor-and-patch",
+    "github>growse/renovate-template:automerge-github-actions"
+  ]
+}

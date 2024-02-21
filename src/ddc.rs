@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-
-use std::process::Command;
-use log::debug;
 use crate::helpers::Also;
+use log::debug;
+use std::process::Command;
 
 pub struct ModeSwitch {
     pub device_arrive_mode: u16,

@@ -1,6 +1,6 @@
+use anyhow::{anyhow, Error};
 use std::num::ParseIntError;
 use std::time::Duration;
-use anyhow::{anyhow, Error};
 
 /**
  * Also trait
@@ -17,7 +17,10 @@ use anyhow::{anyhow, Error};
  * This will print "x is 5" and return 5.
  */
 pub trait Also {
-    fn also<F>(&self, f: F) -> &Self where F: FnOnce(&Self) {
+    fn also<F>(&self, f: F) -> &Self
+    where
+        F: FnOnce(&Self),
+    {
         f(self);
         self
     }
@@ -26,7 +29,10 @@ pub trait Also {
 impl<T> Also for T {}
 
 pub trait Run {
-    fn run<F, G>(&self, f: F) -> G where F: FnOnce(&Self) -> G {
+    fn run<F, G>(&self, f: F) -> G
+    where
+        F: FnOnce(&Self) -> G,
+    {
         f(self)
     }
 }

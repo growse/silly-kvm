@@ -1,0 +1,9 @@
+[Unit]
+Description="Detects USB events and then switches monitor sources in response
+
+[Service]
+Type=simple
+ExecStart=~/bin/silly-kvm
+
+[Install]
+WantedBy=multi-user.target

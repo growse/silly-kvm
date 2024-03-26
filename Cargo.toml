@@ -12,4 +12,4 @@ rusb = "0.9.3"
 signal-hook = "0.3.17"
 log = "0.4.21"
 simplelog = "0.12.2"
-clap = { version = "4.5.3", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive"] }

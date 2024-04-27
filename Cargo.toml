@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.82"
 crossbeam-channel = "0.5.12"
-rusb = "0.9.3"
+rusb = "0.9.4"
 signal-hook = "0.3.17"
 log = "0.4.21"
 simplelog = "0.12.2"

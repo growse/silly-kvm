@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::helpers::Also;
-use log::debug;
+use crate::helpers::{Also, IntegerFromHexString};
+use log::{debug, info};
 use std::process::Command;
 
 pub struct ModeSwitch {
@@ -10,7 +10,7 @@ pub struct ModeSwitch {
 }
 
 pub struct DDCDisplaySwitchConfig {
-    pub bus_id: u16,
+    pub display_bus_id: u16,
     pub device_arrive_mode: u16,
     pub device_left_mode: u16,
 }
@@ -19,6 +19,28 @@ pub struct SwitcherConfig {
     pub vendor_id: u16,
     pub product_id: u16,
     pub display_switch_configs: Vec<DDCDisplaySwitchConfig>,
+}
+
+pub fn parse_monitor_config(config: Vec<String>) -> HashMap<i32, ModeSwitch> {
+    return config
+        .iter()
+        .map(|config| {
+            let parts = config.split(':').collect::<Vec<&str>>();
+            assert_eq!(3, parts.len(), "Invalid monitor config: {}", config);
+            (
+                parts[0]
+                    .also(|val| info!("Monitor ID: {}", val))
+                    .parse()
+                    .expect("Invalid monitor id"),
+                ModeSwitch {
+                    device_arrive_mode: u16::from_hex_string(parts[1])
+                        .expect("Not a valid hex for device arrive mode"),
+                    device_left_mode: u16::from_hex_string(parts[2])
+                        .expect("Not a valid hex for device left mode"),
+                },
+            )
+        })
+        .collect::<HashMap<i32, ModeSwitch>>();
 }
 
 type DisplayId = i32;
@@ -73,7 +95,7 @@ impl SwitcherConfig {
                     .get(display_id)
                     .expect("No bus id found for display");
                 DDCDisplaySwitchConfig {
-                    bus_id: bus_id.to_owned(),
+                    display_bus_id: bus_id.to_owned(),
                     device_arrive_mode: mode_switch.device_arrive_mode,
                     device_left_mode: mode_switch.device_left_mode,
                 }

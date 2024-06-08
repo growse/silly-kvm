@@ -1,15 +1,15 @@
 mod ddc;
 mod helpers;
 
-use crate::ddc::{DDCDisplaySwitchConfig, ModeSwitch, SwitcherConfig};
+use crate::ddc::{DDCDisplaySwitchConfig, parse_monitor_config, SwitcherConfig};
 use anyhow::Error;
-use crossbeam_channel::bounded;
+use crossbeam_channel::{bounded, Receiver};
 use log::{debug, info, warn, LevelFilter};
 use rusb::{Context, Device, Hotplug, HotplugBuilder, Registration, UsbContext};
 use signal_hook::consts::SIGINT;
 use signal_hook::iterator::Signals;
 use simplelog::{ColorChoice, Config, TerminalMode};
-use std::collections::HashMap;
+use std::os::raw::c_int;
 
 use clap::Parser;
 use std::process::Command;
@@ -17,7 +17,7 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-use crate::helpers::{parse_duration, Also, IntegerFromHexString};
+use crate::helpers::{parse_duration, IntegerFromHexString};
 
 #[derive(Parser)]
 struct CliOptions {
@@ -49,40 +49,12 @@ fn main() -> Result<(), Error> {
         ColorChoice::Always,
     )?;
 
-    let monitor_config_map = cli
-        .monitor_config
-        .iter()
-        .map(|config| {
-            let parts = config.split(':').collect::<Vec<&str>>();
-            assert_eq!(3, parts.len(), "Invalid monitor config: {}", config);
-            (
-                parts[0]
-                    .also(|val| info!("Monitor ID: {}", val))
-                    .parse()
-                    .expect("Invalid monitor id"),
-                ModeSwitch {
-                    device_arrive_mode: u16::from_hex_string(parts[1])
-                        .expect("Not a valid hex for device arrive mode"),
-                    device_left_mode: u16::from_hex_string(parts[2])
-                        .expect("Not a valid hex for device left mode"),
-                },
-            )
-        })
-        .collect::<HashMap<i32, ModeSwitch>>();
+    let monitor_config_map = parse_monitor_config(cli.monitor_config);
 
     let switcher_config =
         SwitcherConfig::new(cli.usb_vendor_id, cli.usb_product_id, monitor_config_map);
 
-    let (signal_channel_sender, signal_channel_receiver) = bounded(10);
-    let mut signals = Signals::new([SIGINT])?;
-    thread::spawn(move || {
-        for sig in signals.forever() {
-            warn!("Received signal {:?}", sig);
-            signal_channel_sender
-                .send(sig)
-                .expect("Failed to send signal")
-        }
-    });
+    let signal_channel_receiver = setup_signal_handler()?;
 
     let usb_context = Context::new()?;
 
@@ -117,6 +89,20 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
+fn setup_signal_handler() -> Result<Receiver<c_int>,Error> {
+    let (signal_channel_sender, signal_channel_receiver) = bounded(10);
+    let mut signals = Signals::new([SIGINT])?;
+    thread::spawn(move || {
+        for sig in signals.forever() {
+            warn!("Received signal {:?}", sig);
+            signal_channel_sender
+                .send(sig)
+                .expect("Failed to send signal")
+        }
+    });
+    Ok(signal_channel_receiver)
+}
+
 fn switch_monitor_to_input_source(bus_id: u16, input_source: u16) {
     info!(
         "Switching monitor on bus {} to input source {}",
@@ -142,7 +128,7 @@ impl<T: UsbContext> Hotplug<T> for USBHotplugCallback {
     fn device_arrived(&mut self, device: Device<T>) {
         info!("Device arrived: {:?}", device);
         self.display_switch_configs.iter().for_each(|config| {
-            switch_monitor_to_input_source(config.bus_id, config.device_arrive_mode);
+            switch_monitor_to_input_source(config.display_bus_id, config.device_arrive_mode);
             sleep(self.ddc_wait_interval);
         });
     }
@@ -150,7 +136,7 @@ impl<T: UsbContext> Hotplug<T> for USBHotplugCallback {
     fn device_left(&mut self, device: Device<T>) {
         info!("Device left: {:?}", device);
         self.display_switch_configs.iter().for_each(|config| {
-            switch_monitor_to_input_source(config.bus_id, config.device_left_mode);
+            switch_monitor_to_input_source(config.display_bus_id, config.device_left_mode);
             sleep(self.ddc_wait_interval);
         });
     }

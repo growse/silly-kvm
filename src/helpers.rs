@@ -28,16 +28,6 @@ pub trait Also {
 
 impl<T> Also for T {}
 
-pub trait Run {
-    fn run<F, G>(&self, f: F) -> G
-    where
-        F: FnOnce(&Self) -> G,
-    {
-        f(self)
-    }
-}
-
-impl<T> Run for T {}
 
 /**
  * Parse a duration from a string

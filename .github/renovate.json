@@ -5,5 +5,5 @@
     "github>growse/renovate-template:automerge-minor-and-patch",
     "github>growse/renovate-template:automerge-github-actions"
   ],
-  "autoMerge": true
+  "automerge": true
 }

@@ -1,7 +1,7 @@
 mod ddc;
 mod helpers;
 
-use crate::ddc::{DDCDisplaySwitchConfig, parse_monitor_config, SwitcherConfig};
+use crate::ddc::{parse_monitor_config, DDCDisplaySwitchConfig, SwitcherConfig};
 use anyhow::Error;
 use crossbeam_channel::{bounded, Receiver};
 use log::{debug, info, warn, LevelFilter};
@@ -11,21 +11,22 @@ use signal_hook::iterator::Signals;
 use simplelog::{ColorChoice, Config, TerminalMode};
 use std::os::raw::c_int;
 
-use clap::Parser;
+use crate::helpers::{parse_duration, IntegerFromHexString};
+use clap::{CommandFactory, Parser};
+use clap_config::ClapConfig;
+use serde::Deserialize;
 use std::process::Command;
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-use crate::helpers::{parse_duration, IntegerFromHexString};
-
-#[derive(Parser)]
-struct CliOptions {
+#[derive(ClapConfig, Parser, Deserialize, Debug)]
+pub struct CliOptions {
     #[arg(short, long, help = "Show Debug Logs")]
     debug: bool,
-    #[arg(short = 'v', long, value_parser = u16::from_hex_string, help = "USB Vendor ID to listen for")]
+    #[arg(short = 'v', long, default_value = "0x0", value_parser = u16::from_hex_string, help = "USB Vendor ID to listen for")]
     usb_vendor_id: u16,
-    #[arg(short = 'p', long, value_parser = u16::from_hex_string, help = "USB Product ID to listen for")]
+    #[arg(short = 'p', long, default_value = "0x0", value_parser = u16::from_hex_string, help = "USB Product ID to listen for")]
     usb_product_id: u16,
 
     #[arg(long, value_parser = parse_duration, default_value = "300", help = "How long to pause after issuing a DDC command")]
@@ -35,8 +36,20 @@ struct CliOptions {
     monitor_config: Vec<String>,
 }
 
+const DEFAULT_CONFIG_FILE: &str = "~/.config/silly-kvm.yaml";
+
 fn main() -> Result<(), Error> {
-    let cli = CliOptions::parse();
+    let config_file = std::fs::read_to_string(shellexpand::tilde(DEFAULT_CONFIG_FILE).to_string());
+
+
+    let cli = config_file.map_or_else(|_| {
+        CliOptions::parse()
+    }, |config_file| {
+        println!("Reading config from {DEFAULT_CONFIG_FILE}");
+        let config_file_contents: CliOptionsConfig = serde_yaml::from_str(&config_file).expect("Unable to parse config file");
+        let matches = <CliOptions as CommandFactory>::command().get_matches();
+        CliOptions::from_merged(matches, Some(config_file_contents))
+    });
 
     simplelog::TermLogger::init(
         if cli.debug {
@@ -89,7 +102,7 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn setup_signal_handler() -> Result<Receiver<c_int>,Error> {
+fn setup_signal_handler() -> Result<Receiver<c_int>, Error> {
     let (signal_channel_sender, signal_channel_receiver) = bounded(10);
     let mut signals = Signals::new([SIGINT])?;
     thread::spawn(move || {

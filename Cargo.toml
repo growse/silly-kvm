@@ -13,3 +13,8 @@ signal-hook = "0.3.17"
 log = "0.4.21"
 simplelog = "0.12.2"
 clap = { version = "4.5.4", features = ["derive"] }
+clap_config = "0.1.1"
+serde = { version ="1.0.210", features = ["serde_derive"] }
+
+shellexpand = "3.1.0"
+serde_yaml = "0.9.33"

@@ -4,6 +4,8 @@ Description="Detects USB events and then switches monitor sources in response
 [Service]
 Type=simple
 ExecStart=%h/.cargo/bin/silly-kvm
+Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

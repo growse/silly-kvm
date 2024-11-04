@@ -28,7 +28,6 @@ pub trait Also {
 
 impl<T> Also for T {}
 
-
 /**
  * Parse a duration from a string
  *

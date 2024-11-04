@@ -41,15 +41,16 @@ const DEFAULT_CONFIG_FILE: &str = "~/.config/silly-kvm.yaml";
 fn main() -> Result<(), Error> {
     let config_file = std::fs::read_to_string(shellexpand::tilde(DEFAULT_CONFIG_FILE).to_string());
 
-
-    let cli = config_file.map_or_else(|_| {
-        CliOptions::parse()
-    }, |config_file| {
-        println!("Reading config from {DEFAULT_CONFIG_FILE}");
-        let config_file_contents: CliOptionsConfig = serde_yaml::from_str(&config_file).expect("Unable to parse config file");
-        let matches = <CliOptions as CommandFactory>::command().get_matches();
-        CliOptions::from_merged(matches, Some(config_file_contents))
-    });
+    let cli = config_file.map_or_else(
+        |_| CliOptions::parse(),
+        |config_file| {
+            println!("Reading config from {DEFAULT_CONFIG_FILE}");
+            let config_file_contents: CliOptionsConfig =
+                serde_yaml::from_str(&config_file).expect("Unable to parse config file");
+            let matches = <CliOptions as CommandFactory>::command().get_matches();
+            CliOptions::from_merged(matches, Some(config_file_contents))
+        },
+    );
 
     simplelog::TermLogger::init(
         if cli.debug {

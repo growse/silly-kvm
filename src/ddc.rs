@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::helpers::{Also, IntegerFromHexString};
-use log::{debug, info};
+use log::{debug, info, warn};
 use std::process::Command;
 
 pub struct ModeSwitch {
@@ -87,17 +87,16 @@ impl SwitcherConfig {
 
         let display_switch_configs = displays_to_modes
             .iter()
-            .map(|(display_id, mode_switch)| {
-                display_to_bus
-                    .get(display_id)
-                    .expect("No bus id found for display");
-                let bus_id = display_to_bus
-                    .get(display_id)
-                    .expect("No bus id found for display");
-                DDCDisplaySwitchConfig {
-                    display_bus_id: bus_id.to_owned(),
-                    device_arrive_mode: mode_switch.device_arrive_mode,
-                    device_left_mode: mode_switch.device_left_mode,
+            .filter_map(|(display_id, mode_switch)| {
+                if let Some(bus_id) = display_to_bus.get(display_id) {
+                    Some(DDCDisplaySwitchConfig {
+                        display_bus_id: bus_id.to_owned(),
+                        device_arrive_mode: mode_switch.device_arrive_mode,
+                        device_left_mode: mode_switch.device_left_mode,
+                    })
+                } else {
+                    warn!("Display ID: {} Bus ID: Not found", display_id);
+                    None
                 }
             })
             .collect::<Vec<DDCDisplaySwitchConfig>>();

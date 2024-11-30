@@ -100,6 +100,9 @@ impl SwitcherConfig {
                 }
             })
             .collect::<Vec<DDCDisplaySwitchConfig>>();
+        if display_switch_configs.is_empty() {
+            panic!("No displays found");
+        }
 
         SwitcherConfig {
             vendor_id,

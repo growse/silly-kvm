@@ -57,12 +57,9 @@ impl SwitcherConfig {
             .output()
             .expect("Unable to detect displays");
         if !displays.status.success() {
-            panic!(
-                "Display detection failed with status: {}",
-                displays.status
-            );
+            panic!("Display detection failed with status: {}", displays.status);
         }
-        let displays:Vec<DisplayId>=std::str::from_utf8(&displays.stdout)
+        let displays: Vec<DisplayId> = std::str::from_utf8(&displays.stdout)
             .expect("Display detection output was not a string")
             .split('\n')
             .filter_map(|line| {
@@ -79,7 +76,8 @@ impl SwitcherConfig {
                 } else {
                     None
                 }
-            }).collect();
+            })
+            .collect();
 
         let display_switch_configs = displays_to_modes
             .iter()
@@ -87,12 +85,11 @@ impl SwitcherConfig {
                 if !displays.contains(display_id) {
                     panic!("Display ID {} not found in ddcutil output", display_id);
                 }
-                    Some(DDCDisplaySwitchConfig {
-                        display_number: *display_id,
-                        device_arrive_mode: mode_switch.device_arrive_mode,
-                        device_left_mode: mode_switch.device_left_mode,
-                    })
-
+                Some(DDCDisplaySwitchConfig {
+                    display_number: *display_id,
+                    device_arrive_mode: mode_switch.device_arrive_mode,
+                    device_left_mode: mode_switch.device_left_mode,
+                })
             })
             .collect::<Vec<DDCDisplaySwitchConfig>>();
         if display_switch_configs.is_empty() {

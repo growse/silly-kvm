@@ -1,17 +1,17 @@
 mod ddc;
 mod helpers;
 
-use crate::ddc::{parse_monitor_config, DDCDisplaySwitchConfig, SwitcherConfig};
+use crate::ddc::{DDCDisplaySwitchConfig, SwitcherConfig, parse_monitor_config};
 use anyhow::Error;
-use crossbeam_channel::{bounded, Receiver};
-use log::{debug, info, warn, LevelFilter};
+use crossbeam_channel::{Receiver, bounded};
+use log::{LevelFilter, debug, info, warn};
 use rusb::{Context, Device, Hotplug, HotplugBuilder, Registration, UsbContext};
 use signal_hook::consts::SIGINT;
 use signal_hook::iterator::Signals;
 use simplelog::{ColorChoice, Config, TerminalMode};
 use std::os::raw::c_int;
 
-use crate::helpers::{parse_duration, IntegerFromHexString};
+use crate::helpers::{IntegerFromHexString, parse_duration};
 use clap::{CommandFactory, Parser};
 use clap_config::ClapConfig;
 use serde::Deserialize;

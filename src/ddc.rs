@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::helpers::{Also, IntegerFromHexString};
-use log::{debug, info, warn};
+use log::{debug, info};
 use std::process::Command;
 
 pub struct ModeSwitch {
@@ -10,7 +10,7 @@ pub struct ModeSwitch {
 }
 
 pub struct DDCDisplaySwitchConfig {
-    pub display_bus_id: u16,
+    pub display_number: DisplayId,
     pub device_arrive_mode: u16,
     pub device_left_mode: u16,
 }
@@ -21,8 +21,8 @@ pub struct SwitcherConfig {
     pub display_switch_configs: Vec<DDCDisplaySwitchConfig>,
 }
 
-pub fn parse_monitor_config(config: Vec<String>) -> HashMap<i32, ModeSwitch> {
-    return config
+pub fn parse_monitor_config(config: Vec<String>) -> HashMap<DisplayId, ModeSwitch> {
+    config
         .iter()
         .map(|config| {
             let parts = config.split(':').collect::<Vec<&str>>();
@@ -40,64 +40,59 @@ pub fn parse_monitor_config(config: Vec<String>) -> HashMap<i32, ModeSwitch> {
                 },
             )
         })
-        .collect::<HashMap<i32, ModeSwitch>>();
+        .collect::<HashMap<DisplayId, ModeSwitch>>()
 }
 
-type DisplayId = i32;
+type DisplayId = u16;
 
 impl SwitcherConfig {
     pub fn new(
         vendor_id: u16,
         product_id: u16,
-        displays_to_modes: HashMap<i32, ModeSwitch>,
+        displays_to_modes: HashMap<DisplayId, ModeSwitch>,
     ) -> Self {
         let displays = Command::new("ddcutil")
             .arg("detect")
             .arg("--terse")
             .output()
             .expect("Unable to detect displays");
-
-        let mut display_to_bus = HashMap::new();
-        let mut current_display: Option<DisplayId> = None;
-        std::str::from_utf8(&displays.stdout)
+        if !displays.status.success() {
+            panic!(
+                "Display detection failed with status: {}",
+                displays.status
+            );
+        }
+        let displays:Vec<DisplayId>=std::str::from_utf8(&displays.stdout)
             .expect("Display detection output was not a string")
             .split('\n')
-            .for_each(|line| {
+            .filter_map(|line| {
                 if line.trim().starts_with("Display") {
                     let display_number: DisplayId = line
                         .split(' ')
-                        .last()
+                        .next_back()
                         .expect("Display detection output was not a string")
                         .trim()
                         .also(|s| debug!("Display number: {}", s))
                         .parse()
                         .expect("Display number was not a number");
-                    current_display = Some(display_number);
-                } else if line.trim().starts_with("I2C bus") && current_display.is_some() {
-                    let bus_id: u16 = line
-                        .split('-')
-                        .last()
-                        .expect("Display bus detection output was not a string")
-                        .also(|s| debug!("Bus id: {}", s))
-                        .parse()
-                        .expect("Bus id was not a number");
-                    display_to_bus.insert(current_display.expect("No display found"), bus_id);
+                    Some(display_number)
+                } else {
+                    None
                 }
-            });
+            }).collect();
 
         let display_switch_configs = displays_to_modes
             .iter()
             .filter_map(|(display_id, mode_switch)| {
-                if let Some(bus_id) = display_to_bus.get(display_id) {
+                if !displays.contains(display_id) {
+                    panic!("Display ID {} not found in ddcutil output", display_id);
+                }
                     Some(DDCDisplaySwitchConfig {
-                        display_bus_id: bus_id.to_owned(),
+                        display_number: *display_id,
                         device_arrive_mode: mode_switch.device_arrive_mode,
                         device_left_mode: mode_switch.device_left_mode,
                     })
-                } else {
-                    warn!("Display ID: {} Bus ID: Not found", display_id);
-                    None
-                }
+
             })
             .collect::<Vec<DDCDisplaySwitchConfig>>();
         if display_switch_configs.is_empty() {

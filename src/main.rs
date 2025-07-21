@@ -32,7 +32,7 @@ pub struct CliOptions {
     #[arg(long, value_parser = parse_duration, default_value = "300", help = "How long to pause after issuing a DDC command")]
     ddc_wait_interval: Duration,
 
-    #[arg(long, short, num_args = 1.., help = "Monitor configuration in the format <bus_id>:<device_arrive_mode>:<device_left_mode>")]
+    #[arg(long, short, num_args = 1.., help = "Monitor configuration in the format <display_id>:<device_arrive_mode>:<device_left_mode>")]
     monitor_config: Vec<String>,
 }
 
@@ -117,13 +117,13 @@ fn setup_signal_handler() -> Result<Receiver<c_int>, Error> {
     Ok(signal_channel_receiver)
 }
 
-fn switch_monitor_to_input_source(bus_id: u16, input_source: u16) {
+fn switch_monitor_to_input_source(display_id: u16, input_source: u16) {
     info!(
-        "Switching monitor on bus {} to input source {}",
-        bus_id, input_source
+        "Switching monitor {} to input source {}",
+        display_id, input_source
     );
     let result = Command::new("ddcutil")
-        .arg(format!("--bus={}", bus_id))
+        .arg(format!("--display={}", display_id))
         .arg("setvcp")
         .arg("60")
         .arg(input_source.to_string())
@@ -142,7 +142,7 @@ impl<T: UsbContext> Hotplug<T> for USBHotplugCallback {
     fn device_arrived(&mut self, device: Device<T>) {
         info!("Device arrived: {:?}", device);
         self.display_switch_configs.iter().for_each(|config| {
-            switch_monitor_to_input_source(config.display_bus_id, config.device_arrive_mode);
+            switch_monitor_to_input_source(config.display_number, config.device_arrive_mode);
             sleep(self.ddc_wait_interval);
         });
     }
@@ -150,7 +150,7 @@ impl<T: UsbContext> Hotplug<T> for USBHotplugCallback {
     fn device_left(&mut self, device: Device<T>) {
         info!("Device left: {:?}", device);
         self.display_switch_configs.iter().for_each(|config| {
-            switch_monitor_to_input_source(config.display_bus_id, config.device_left_mode);
+            switch_monitor_to_input_source(config.display_number, config.device_left_mode);
             sleep(self.ddc_wait_interval);
         });
     }

@@ -17,7 +17,7 @@ Options:
       --ddc-wait-interval <DDC_WAIT_INTERVAL>
           How long to pause after issuing a DDC command [default: 300]
   -m, --monitor-config <MONITOR_CONFIG>...
-          Monitor configuration in the format <bus_id>:<device_arrive_mode>:<device_left_mode>
+          Monitor configuration in the format <display_id>:<device_arrive_mode>:<device_left_mode>
   -h, --help
           Print help
 ```

@@ -9,7 +9,7 @@ edition = "2024"
 anyhow = "1.0.82"
 crossbeam-channel = "0.5.12"
 rusb = "0.9.4"
-signal-hook = "0.3.17"
+signal-hook = "0.4.0"
 log = "0.4.21"
 simplelog = "0.12.2"
 clap = { version = "4.5.4", features = ["derive"] }

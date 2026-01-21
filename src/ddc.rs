@@ -81,15 +81,15 @@ impl SwitcherConfig {
 
         let display_switch_configs = displays_to_modes
             .iter()
-            .filter_map(|(display_id, mode_switch)| {
+            .map(|(display_id, mode_switch)| {
                 if !displays.contains(display_id) {
                     panic!("Display ID {} not found in ddcutil output", display_id);
                 }
-                Some(DDCDisplaySwitchConfig {
+                DDCDisplaySwitchConfig {
                     display_number: *display_id,
                     device_arrive_mode: mode_switch.device_arrive_mode,
                     device_left_mode: mode_switch.device_left_mode,
-                })
+                }
             })
             .collect::<Vec<DDCDisplaySwitchConfig>>();
         if display_switch_configs.is_empty() {

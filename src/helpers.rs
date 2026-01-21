@@ -44,10 +44,10 @@ pub trait IntegerFromHexString<T> {
 
 impl IntegerFromHexString<u16> for u16 {
     fn from_hex_string(input: &str) -> Result<u16, Error> {
-        return if input.starts_with("0x") {
+        if input.starts_with("0x") {
             u16::from_str_radix(input.trim_start_matches("0x"), 16).map_err(|e| e.into())
         } else {
             Err(anyhow!("Invalid hex string"))
-        };
+        }
     }
 }

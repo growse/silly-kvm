@@ -1,5 +1,5 @@
 [Unit]
-Description="Detects USB events and then switches monitor sources in response
+Description=Detects USB events and then switches monitor sources in response
 
 [Service]
 Type=simple
